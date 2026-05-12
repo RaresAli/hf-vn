@@ -14,7 +14,7 @@ import os
 import sys
 import argparse
 import yaml
-script_dir = os.path.dirname(os.path.realpath(__file__))
+script_dir = os.path.dirname(os.path.realpath(__file__)) 
 sys.path.append(os.path.join(script_dir, '..', 'utils'))
 from utils import logger, get_centrality_bins, make_dir_root_file
 from corr_bkgs_brs import final_states
