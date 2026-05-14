@@ -18,7 +18,6 @@ final_states = {
       "br_sim_ppref": 1.1e-1,
       "br_sim_pbpb": 3.4e-1,
       "br_sim_oo": 1.1e-1,
-
       "br_pdg": 3.3e-3,
     },
     "DplusToPiKK": {
