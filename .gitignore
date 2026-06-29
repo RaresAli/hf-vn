@@ -20,3 +20,14 @@ test*
 
 # jupyter notebook
 *.ipynb
+
+../../run_analysis.py
+../../src/correlated_bkgs.py
+../../src/get_v2_vs_frac.py
+../../src/get_vn_vs_mass.py
+../../src/proj_thn.py
+#make_configs_multitrial.py
+produce_fit_multitrial_syst_plots.py
+run_fits.py
+run_multitrial_fit.sh
+../../utils/utils.py
