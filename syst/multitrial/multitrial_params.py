@@ -74,7 +74,7 @@ def compute_ylimits(var_name, y_vals):
     else:  # Mean and anything else
         y_min = np.nanmin(y_vals) * 0.9995
         y_max = np.nanmax(y_vals) * 1.0005
-
+ 
     if y_min == y_max:
         y_min -= 0.001
         y_max += 0.001
