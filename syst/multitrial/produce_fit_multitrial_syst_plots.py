@@ -370,6 +370,55 @@ def extract_cutset_results(cutset_file, pt_bin):
     return result
 
 
+#def get_trial_result(trial_dir, cutsets):
+#    """Extract a trial row dict for all cutsets"""
+#    idx = os.path.basename(trial_dir)
+#    pt_label = os.path.basename(os.path.dirname(os.path.dirname(trial_dir)))
+#
+#    # Load trial config
+#    cfg_path = os.path.join(trial_dir, f'config_trial_{idx}.yml')
+#    with open(cfg_path, 'r') as f:
+#        cfg = yaml.safe_load(f)
+#
+#    # Prepare config columns
+#    config_vals = dict(
+#        BkgFunc=get_cfg_entry(cfg['v2extraction']['BkgFunc']),
+#        BkgFuncVn=get_cfg_entry(cfg['v2extraction']['BkgFuncVn']),
+#        SgnFunc=get_cfg_entry(cfg['v2extraction']['SgnFunc']),
+#        Rebin=get_cfg_entry(cfg['v2extraction']['Rebin']),
+#        VnVsMassBinWidths=cfg['projections']['VnVsMassBins'][0][1] - \
+#                          cfg['projections']['VnVsMassBins'][0][0],
+#        MassFitRanges=cfg['v2extraction']['MassFitRanges'][0],
+#        TrialIdx=idx,
+#        PtLabel=pt_label
+#    )
+#
+#    # Open V2 fraction hist
+#    try:
+#        v2f = TFile.Open(os.path.join(trial_dir, 'v2/v2VsFrac.root'), 'READ')
+#        prompt_row = dict(V2Type='Prompt', V2=v2f.Get('hV2VsPtPrompt').GetBinContent(1),
+#                          V2Unc=v2f.Get('hV2VsPtPrompt').GetBinError(1),**config_vals)
+#        nonprompt_row = dict(V2Type='NonPrompt',V2=v2f.Get('hV2VsPtFD').GetBinContent(1),
+#                             V2Unc=v2f.Get('hV2VsPtFD').GetBinError(1),**config_vals)
+#        v2f.Close()
+#    except Exception as e:
+#        raise e
+#
+#    cutset_rows = []
+#    for cutset in cutsets:
+#        try:
+#            cutset_file = TFile.Open(os.path.join(trial_dir, f'raw_yields/raw_yields_0{cutset}.root'), 'READ')
+#            cutset_row = dict(V2Type=f"Cutset_{str(cutset)}", **extract_cutset_results(cutset_file, 1), **config_vals)
+#            cutset_file.Close()
+#        except Exception as e:
+#            logger(f"Failed to open cutset file in {os.path.basename(trial_dir)} for cutset {cutset}: {e}", "WARNING")
+#            cutset_row = dict(V2Type=f"Cutset_{str(cutset)}", **config_vals, Significance=None, 
+#                              SignificanceUnc=None, Chi2=None, Chi2Unc=None, V2=None, V2Unc=None, 
+#                              SoverB=None, Mean=None, Sigma=None, SigmaSecPeak=None)
+#        cutset_rows.append(cutset_row)
+#
+#    return [prompt_row, nonprompt_row] + cutset_rows
+
 def get_trial_result(trial_dir, cutsets):
     """Extract a trial row dict for all cutsets"""
     idx = os.path.basename(trial_dir)
@@ -393,16 +442,18 @@ def get_trial_result(trial_dir, cutsets):
         PtLabel=pt_label
     )
 
-    # Open V2 fraction hist
+    # Try to open V2 fraction hist; if missing, set NaN
     try:
         v2f = TFile.Open(os.path.join(trial_dir, 'v2/v2VsFrac.root'), 'READ')
         prompt_row = dict(V2Type='Prompt', V2=v2f.Get('hV2VsPtPrompt').GetBinContent(1),
-                          V2Unc=v2f.Get('hV2VsPtPrompt').GetBinError(1),**config_vals)
-        nonprompt_row = dict(V2Type='NonPrompt',V2=v2f.Get('hV2VsPtFD').GetBinContent(1),
-                             V2Unc=v2f.Get('hV2VsPtFD').GetBinError(1),**config_vals)
+                          V2Unc=v2f.Get('hV2VsPtPrompt').GetBinError(1), **config_vals)
+        nonprompt_row = dict(V2Type='NonPrompt', V2=v2f.Get('hV2VsPtFD').GetBinContent(1),
+                             V2Unc=v2f.Get('hV2VsPtFD').GetBinError(1), **config_vals)
         v2f.Close()
-    except Exception as e:
-        raise e
+    except:
+        # If file missing, create rows with NaN
+        prompt_row = dict(V2Type='Prompt', V2=np.nan, V2Unc=np.nan, **config_vals)
+        nonprompt_row = dict(V2Type='NonPrompt', V2=np.nan, V2Unc=np.nan, **config_vals)
 
     cutset_rows = []
     for cutset in cutsets:
@@ -418,7 +469,6 @@ def get_trial_result(trial_dir, cutsets):
         cutset_rows.append(cutset_row)
 
     return [prompt_row, nonprompt_row] + cutset_rows
-
 
 def get_reference_result(results_dir, cutsets, pt_labels):
     """Extract reference results (Prompt, NonPrompt, and cutsets)"""
@@ -451,6 +501,37 @@ def get_reference_result(results_dir, cutsets, pt_labels):
 
     return ref_rows
 
+def get_reference_result(results_dir, cutsets, pt_labels):
+    """Extract reference results (Prompt, NonPrompt, and cutsets)"""
+    ref_rows = []
+    # Try to open v2 file; if missing, skip prompt/nonprompt
+    try:
+        v2f = TFile.Open(os.path.join(results_dir, 'v2/v2VsFrac.root'), 'READ')
+        for pt_label in pt_labels:
+            pt_min, pt_max = get_pt_label_range(pt_label)
+            pt_bin = v2f.Get('hV2VsPtPrompt').GetXaxis().FindBin((pt_min + pt_max)/2)
+            ref_rows.append(dict(PtLabel=pt_label, V2=v2f.Get('hV2VsPtPrompt').GetBinContent(pt_bin),
+                                 V2Type='Prompt', V2Unc=v2f.Get('hV2VsPtPrompt').GetBinError(pt_bin)))
+            ref_rows.append(dict(PtLabel=pt_label, V2=v2f.Get('hV2VsPtFD').GetBinContent(pt_bin),
+                                 V2Type='NonPrompt', V2Unc=v2f.Get('hV2VsPtFD').GetBinError(pt_bin)))
+        v2f.Close()
+    except:
+        # If file missing, just skip prompt/nonprompt
+        pass
+
+    # Cutsets
+    for cutset in cutsets:
+        ry_file = TFile.Open(os.path.join(results_dir, f'raw_yields/raw_yields_0{cutset}.root'), 'READ')
+        for pt_label in pt_labels:
+            pt_min, pt_max = get_pt_label_range(pt_label)
+            pt_bin = ry_file.Get('hRawYieldsSignificanceSimFit').GetXaxis().FindBin((pt_min + pt_max)/2)
+            ref_rows.append(dict(
+                PtLabel=pt_label,
+                V2Type=f"Cutset_{str(cutset)}",
+                **extract_cutset_results(ry_file, pt_bin)
+            ))
+        ry_file.Close()
+    return ref_rows
 
 def is_good_trial(trial, max_chi2, min_signif, max_signif):
     """Check if trial passes quality criteria"""
@@ -590,15 +671,15 @@ if __name__ == "__main__":
         print(f"Processing pt bin {pt_label}...")
         os.makedirs(os.path.join(output_dir, pt_label), exist_ok=True)
         out_file_summary = TFile.Open(f"{output_dir}/SystSummary_{pt_label}.root", 'RECREATE')
-        # Print all V2Type values
-        for v2_type in ['Prompt', 'NonPrompt'] + [f"Cutset_{str(c)}" for c in cutsets]:
+        # Itera solo sui cutsets, salta Prompt e NonPrompt
+        for v2_type in [f"Cutset_{str(c)}" for c in cutsets]:
             # Apply category filtering
             sel_trials_df = trials_df[(trials_df["V2Type"] == v2_type) & (trials_df["PtLabel"] == pt_label)]
             sel_reference_df = reference_df[(reference_df["V2Type"] == v2_type) & (reference_df["PtLabel"] == pt_label)]
 
             # Cleanup entries with None in Cutsets (missing cutset, but v2 vs fFD could still be extracted)
-            if "Cutset" in v2_type:
-                sel_trials_df = sel_trials_df.dropna(subset=["V2", "V2Unc", "Chi2", "Chi2Unc", "Significance", "SignificanceUnc", "SoverB", "Mean", "Sigma"])
+            #if "Cutset" in v2_type:
+            #    sel_trials_df = sel_trials_df.dropna(subset=["V2", "V2Unc", "Chi2", "Chi2Unc", "Significance", "SignificanceUnc", "SoverB", "Mean", "Sigma"])
 
             # Reset row indices
             sel_trials_df = sel_trials_df.reset_index(drop=True)

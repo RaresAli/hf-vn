@@ -154,6 +154,7 @@ def produce_trials_fit_configs(cfg_flow, ptmin, ptmax, max_trials, ref_config_pt
         if setting['MaxSignificance'] > 1000:
             logger(f"MaxSignificance is set to {setting['MaxSignificance']}, please consider a lower upper limit!", "WARNING")
         cfg_variant["MaxSignificance"] = setting['MaxSignificance']
+        cfg_variant["MaxChi2PerNDF"] = setting['MaxChi2']
 
         for varied_var in variant:
             if ref_config_ptbin.get(varied_var):

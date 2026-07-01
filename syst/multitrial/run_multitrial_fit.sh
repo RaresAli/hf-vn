@@ -53,7 +53,7 @@ while [[ $# -gt 0 ]]; do
             n_parallel="$2"
             shift 2
             ;;
-        --do-cutset)
+        --do-cutsets)
             do_cutset_generation=true
             shift
             ;;
@@ -105,7 +105,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Recap of the configuration
-echo "Configuration:"
+echo "  Configuration:"
 echo "  Source code path: $path_to_src"
 echo "  Default config: $config_default"
 echo "  Modifies fit config: $config_modifies_fit"
@@ -185,8 +185,8 @@ fi
 
 if [ "$do_compile_fitter" = true ]; then
     echo "Compiling InvMassFitter and VnVsMassFitter ..."
-    rootcling -f $path_to_src/invmassfitter/vnfitter_dict.cxx -c /home/mdicosta/alice/hf-vn/invmassfitter/VnVsMassFitter.h /home/mdicosta/alice/hf-vn/invmassfitter/LinkDefVnFitter.h
-
+    rootcling -f $path_to_src/invmassfitter/vnfitter_dict.cxx -c $path_to_src/invmassfitter/VnVsMassFitter.h $path_to_src/invmassfitter/LinkDefVnFitter.h
+    
     echo "Compiling fitter once for every trial ..."
     g++ -shared -fPIC `root-config --cflags --libs` \
         $path_to_src/invmassfitter/VnVsMassFitter.cxx $path_to_src/invmassfitter/vnfitter_dict.cxx \
@@ -194,8 +194,7 @@ if [ "$do_compile_fitter" = true ]; then
     echo "Compilation done!"
 fi
 
-# pt_dirs=($(ls -d "$output_dir"/syst/multitrial/fit/pt_*))
-pt_dirs=("$output_dir"/syst/multitrial/fit/pt_120_160)
+pt_dirs=($(ls -d "$output_dir"/syst/multitrial/fit/pt_*))
 
 # Find YAML files, sort numerically by trial number, one per line
 for dir in "${pt_dirs[@]}"; do
@@ -236,8 +235,7 @@ for dir in "${pt_dirs[@]}"; do
     fi
 done
 
-# pt_dirs=("$output_dir"/syst/multitrial/fit/pt_*)
-pt_dirs=("$output_dir"/syst/multitrial/fit/pt_120_160)
+pt_dirs=("$output_dir"/syst/multitrial/fit/pt_*)
 
 if [ "$do_cms_fits" = true ]; then
     log_file_fits="$dir/log_yieldfits.txt"
