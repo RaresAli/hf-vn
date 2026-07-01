@@ -4,7 +4,7 @@ To run the script you need to have previously run "run_multitrial_fit.sh" to gen
 
 For Rebin, Chi2, Significance, MassMin, MassMax, Sigma and Mean the script produces a plot of variable vs trial
 In addition by using "--plot A:B A:C B:C" you can produce a plot of whichever variable you like 
-    as long as it has the name of one of the .parquet columns  
+    as long as it has the name of one of the .parquet columns   
 """
 
 import argparse
